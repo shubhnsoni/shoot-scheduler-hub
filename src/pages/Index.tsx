@@ -38,7 +38,7 @@ const Index = () => {
                 <img 
                   src="/lovable-uploads/b2e1d77f-fa76-4e07-87f5-a4820c7a1396.png" 
                   alt="RePro Photos Logo" 
-                  className="w-auto h-auto max-h-72 max-w-full object-contain"
+                  className="w-auto h-auto max-h-48 max-w-full object-contain"
                 />
                 <p className="text-center text-lg md:text-xl mt-4 text-white font-medium italic drop-shadow-md">
                   Elevating your Status Quo!
@@ -59,7 +59,7 @@ const Index = () => {
             <img 
               src="/lovable-uploads/b2e1d77f-fa76-4e07-87f5-a4820c7a1396.png" 
               alt="RePro Photos Logo" 
-              className="w-auto h-auto max-h-48 max-w-full object-contain relative z-10"
+              className="w-auto h-auto max-h-32 max-w-full object-contain relative z-10"
             />
             <p className="text-center text-base mt-3 text-white font-medium italic drop-shadow-md relative z-10">
               Elevating your Status Quo!
