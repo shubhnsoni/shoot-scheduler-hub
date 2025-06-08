@@ -3,6 +3,11 @@ import {
   Calendar as CalendarIcon,
   ChevronDown,
   ChevronRight,
+  FileText,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Users,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +31,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface InvoiceListProps {
   data: {
@@ -61,10 +67,30 @@ export function InvoiceList({
     : data.invoices.filter(invoice => invoice.status === activeTab);
 
   const filterOptions = [
-    { key: 'all', label: 'All Invoices', count: data.invoices.length },
-    { key: 'pending', label: 'Pending', count: data.invoices.filter(i => i.status === 'pending').length },
-    { key: 'paid', label: 'Paid', count: data.invoices.filter(i => i.status === 'paid').length },
-    { key: 'overdue', label: 'Overdue', count: data.invoices.filter(i => i.status === 'overdue').length },
+    { 
+      key: 'all', 
+      label: 'All Invoices', 
+      count: data.invoices.length,
+      icon: FileText
+    },
+    { 
+      key: 'pending', 
+      label: 'Pending', 
+      count: data.invoices.filter(i => i.status === 'pending').length,
+      icon: Clock
+    },
+    { 
+      key: 'paid', 
+      label: 'Paid', 
+      count: data.invoices.filter(i => i.status === 'paid').length,
+      icon: CheckCircle
+    },
+    { 
+      key: 'overdue', 
+      label: 'Overdue', 
+      count: data.invoices.filter(i => i.status === 'overdue').length,
+      icon: AlertCircle
+    },
   ];
 
   const handleViewInvoice = (invoice: InvoiceData) => {
@@ -134,54 +160,49 @@ export function InvoiceList({
   return (
     <div className="w-full">
       <Card className="mb-6">
-        {/* Mobile Collapsible Filter */}
+        {/* Mobile Circular Icon Navigation */}
         {isMobile ? (
-          <div className="p-3 border-b">
-            <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
-              <CollapsibleTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-between p-3 h-auto"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{currentFilter?.label}</span>
-                    <Badge variant="secondary" className="bg-primary/10 text-primary">
-                      {currentFilter?.count}
-                    </Badge>
-                  </div>
-                  {isFiltersOpen ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-              
-              <CollapsibleContent className="space-y-1 mt-2">
-                {filterOptions.map((option) => (
-                  <Button
+          <div className="p-4 border-b">
+            <div className="flex justify-center gap-3 mb-4">
+              {filterOptions.map((option) => {
+                const Icon = option.icon;
+                const isActive = activeTab === option.key;
+                return (
+                  <button
                     key={option.key}
-                    variant={activeTab === option.key ? "default" : "ghost"}
-                    className="w-full justify-between h-auto p-3"
-                    onClick={() => {
-                      setActiveTab(option.key as any);
-                      setIsFiltersOpen(false);
-                    }}
+                    onClick={() => setActiveTab(option.key as any)}
+                    className={cn(
+                      "relative w-16 h-16 rounded-full flex flex-col items-center justify-center transition-all duration-200",
+                      isActive 
+                        ? "bg-primary text-primary-foreground shadow-lg" 
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    )}
                   >
-                    <span>{option.label}</span>
-                    <Badge 
-                      variant="secondary" 
-                      className={activeTab === option.key ? "bg-white/20" : "bg-muted"}
-                    >
-                      {option.count}
-                    </Badge>
-                  </Button>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
+                    <Icon className="h-6 w-6 mb-0.5" />
+                    {option.count > 0 && (
+                      <div className={cn(
+                        "absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center text-xs font-semibold",
+                        isActive 
+                          ? "bg-primary-foreground text-primary" 
+                          : "bg-primary text-primary-foreground"
+                      )}>
+                        {option.count}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            
+            {/* Current filter label */}
+            <div className="text-center mb-3">
+              <span className="text-sm font-medium text-foreground">
+                {currentFilter?.label}
+              </span>
+            </div>
             
             {/* View Mode Toggle */}
-            <div className="flex gap-1 mt-3">
+            <div className="flex gap-1">
               <Button 
                 variant={viewMode === 'list' ? 'default' : 'ghost'} 
                 size="sm" 
