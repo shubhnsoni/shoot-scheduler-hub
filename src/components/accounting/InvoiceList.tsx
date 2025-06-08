@@ -175,7 +175,7 @@ export function InvoiceList({
         {/* Mobile Horizontal Scrollable Navigation */}
         {isMobile ? (
           <div className="p-4 border-b">
-            <ScrollArea className="w-full" orientation="horizontal">
+            <div className="overflow-x-auto">
               <div className="flex gap-2 pb-2 min-w-max">
                 {/* Filter Options */}
                 {filterOptions.map((option) => {
@@ -248,7 +248,7 @@ export function InvoiceList({
                   </button>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
           </div>
         ) : (
           // Desktop Tab Navigation (unchanged)
