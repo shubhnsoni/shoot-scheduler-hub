@@ -62,7 +62,7 @@ export function InvoiceList({
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'paid' | 'overdue'>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [expandedFilter, setExpandedFilter] = useState<string | null>(null);
+  const [expandedFilter, setExpandedFilter] = useState<string | null>('all'); // Default to 'all' expanded
 
   const filteredInvoices = activeTab === 'all' 
     ? data.invoices 
