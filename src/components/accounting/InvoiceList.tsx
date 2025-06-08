@@ -1,7 +1,8 @@
-
 import React, { useState } from 'react';
 import { 
   Calendar as CalendarIcon,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -16,10 +17,15 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { InvoiceViewDialog } from '@/components/invoices/InvoiceViewDialog';
 import { InvoiceData } from '@/utils/invoiceUtils';
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface InvoiceListProps {
   data: {
@@ -30,7 +36,7 @@ interface InvoiceListProps {
   onDownload: (invoice: InvoiceData) => void;
   onPay: (invoice: InvoiceData) => void;
   onSendReminder: (invoice: InvoiceData) => void;
-  isAdmin?: boolean; // Prop to determine if user is admin
+  isAdmin?: boolean;
 }
 
 export function InvoiceList({ 
@@ -40,17 +46,26 @@ export function InvoiceList({
   onDownload, 
   onPay, 
   onSendReminder,
-  isAdmin = false // Default to false for safety
+  isAdmin = false
 }: InvoiceListProps) {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [viewInvoiceDialogOpen, setViewInvoiceDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'paid' | 'overdue'>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const filteredInvoices = activeTab === 'all' 
     ? data.invoices 
     : data.invoices.filter(invoice => invoice.status === activeTab);
+
+  const filterOptions = [
+    { key: 'all', label: 'All Invoices', count: data.invoices.length },
+    { key: 'pending', label: 'Pending', count: data.invoices.filter(i => i.status === 'pending').length },
+    { key: 'paid', label: 'Paid', count: data.invoices.filter(i => i.status === 'paid').length },
+    { key: 'overdue', label: 'Overdue', count: data.invoices.filter(i => i.status === 'overdue').length },
+  ];
 
   const handleViewInvoice = (invoice: InvoiceData) => {
     setSelectedInvoice(invoice);
@@ -114,27 +129,115 @@ export function InvoiceList({
     }
   };
 
+  const currentFilter = filterOptions.find(f => f.key === activeTab);
+
   return (
     <div className="w-full">
       <Card className="mb-6">
-        <div className="flex items-center justify-between p-3 border-b">
-          <Tabs defaultValue="all" className="w-auto" onValueChange={(value) => setActiveTab(value as any)}>
-            <TabsList className="grid grid-cols-4 w-full min-w-[320px]">
-              <TabsTrigger value="all" className="py-1 text-sm">All Invoices</TabsTrigger>
-              <TabsTrigger value="pending" className="py-1 text-sm">Pending</TabsTrigger>
-              <TabsTrigger value="paid" className="py-1 text-sm">Paid</TabsTrigger>
-              <TabsTrigger value="overdue" className="py-1 text-sm">Overdue</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <div className="flex gap-1 ml-4 text-xs">
-            <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="sm" aria-label="List view" onClick={() => setViewMode('list')}>
-              List View
-            </Button>
-            <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="sm" aria-label="Grid view" onClick={() => setViewMode('grid')}>
-              Grid View
-            </Button>
+        {/* Mobile Collapsible Filter */}
+        {isMobile ? (
+          <div className="p-3 border-b">
+            <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-between p-3 h-auto"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{currentFilter?.label}</span>
+                    <Badge variant="secondary" className="bg-primary/10 text-primary">
+                      {currentFilter?.count}
+                    </Badge>
+                  </div>
+                  {isFiltersOpen ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent className="space-y-1 mt-2">
+                {filterOptions.map((option) => (
+                  <Button
+                    key={option.key}
+                    variant={activeTab === option.key ? "default" : "ghost"}
+                    className="w-full justify-between h-auto p-3"
+                    onClick={() => {
+                      setActiveTab(option.key as any);
+                      setIsFiltersOpen(false);
+                    }}
+                  >
+                    <span>{option.label}</span>
+                    <Badge 
+                      variant="secondary" 
+                      className={activeTab === option.key ? "bg-white/20" : "bg-muted"}
+                    >
+                      {option.count}
+                    </Badge>
+                  </Button>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+            
+            {/* View Mode Toggle */}
+            <div className="flex gap-1 mt-3">
+              <Button 
+                variant={viewMode === 'list' ? 'default' : 'ghost'} 
+                size="sm" 
+                className="flex-1"
+                onClick={() => setViewMode('list')}
+              >
+                List View
+              </Button>
+              <Button 
+                variant={viewMode === 'grid' ? 'default' : 'ghost'} 
+                size="sm" 
+                className="flex-1"
+                onClick={() => setViewMode('grid')}
+              >
+                Grid View
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : (
+          // Desktop Tab Navigation (unchanged)
+          <div className="flex items-center justify-between p-3 border-b">
+            <div className="flex gap-1">
+              {filterOptions.map((option) => (
+                <Button
+                  key={option.key}
+                  variant={activeTab === option.key ? "default" : "ghost"}
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setActiveTab(option.key as any)}
+                >
+                  {option.label}
+                  <Badge variant="secondary" className={activeTab === option.key ? "bg-white/20" : ""}>
+                    {option.count}
+                  </Badge>
+                </Button>
+              ))}
+            </div>
+            
+            <div className="flex gap-1">
+              <Button 
+                variant={viewMode === 'list' ? 'default' : 'ghost'} 
+                size="sm"
+                onClick={() => setViewMode('list')}
+              >
+                List View
+              </Button>
+              <Button 
+                variant={viewMode === 'grid' ? 'default' : 'ghost'} 
+                size="sm"
+                onClick={() => setViewMode('grid')}
+              >
+                Grid View
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div>
           {viewMode === 'list' ? (
@@ -166,7 +269,6 @@ export function InvoiceList({
                             variant="outline" 
                             size="sm" 
                             onClick={() => handleViewInvoice(invoice)} 
-                            aria-label="View" 
                             className="px-3 py-1 text-xs"
                           >
                             View
@@ -175,30 +277,25 @@ export function InvoiceList({
                             variant="outline" 
                             size="sm" 
                             onClick={() => handleDownloadInvoice(invoice)} 
-                            aria-label="Download" 
                             className="px-3 py-1 text-xs"
                           >
                             Download
                           </Button>
-                          {/* Only show mark as paid button for admins */}
                           {isAdmin && (invoice.status === "pending" || invoice.status === "overdue") && (
                             <Button
                               variant="accent"
                               size="sm"
                               onClick={() => onPay(invoice)}
                               className="!px-3 py-1 text-xs"
-                              aria-label="Mark as Paid"
                             >
                               Mark Paid
                             </Button>
                           )}
-                          {/* Only show edit button for admins */}
                           {isAdmin && (
                             <Button 
                               variant="outline" 
                               size="sm" 
                               onClick={() => handleEditInvoice(invoice)} 
-                              aria-label="Edit" 
                               className="px-3 py-1 text-xs"
                             >
                               Edit
@@ -219,34 +316,30 @@ export function InvoiceList({
               </table>
             </div>
           ) : (
-            <Tabs value={activeTab}>
-              <TabsContent value={activeTab} className="p-0">
-                <ScrollArea className="h-[calc(100vh-320px)] sm:h-[calc(100vh-280px)]">
-                  <div className="space-y-3 p-3">
-                    {filteredInvoices.map((invoice) => (
-                      <InvoiceItem 
-                        key={invoice.id} 
-                        invoice={invoice}
-                        onView={handleViewInvoice}
-                        onDownload={handleDownloadInvoice}
-                        onSend={handleSendInvoice}
-                        onPrint={handlePrintInvoice}
-                        onEdit={handleEditInvoice}
-                        onDelete={handleDeleteInvoice}
-                        getStatusColor={getStatusColor}
-                        onPay={onPay}
-                        isAdmin={isAdmin}
-                      />
-                    ))}
-                    {filteredInvoices.length === 0 && (
-                      <div className="py-8 text-center">
-                        <p className="text-muted-foreground text-sm">No invoices found</p>
-                      </div>
-                    )}
+            <ScrollArea className="h-[calc(100vh-320px)] sm:h-[calc(100vh-280px)]">
+              <div className="space-y-3 p-3">
+                {filteredInvoices.map((invoice) => (
+                  <InvoiceItem 
+                    key={invoice.id} 
+                    invoice={invoice}
+                    onView={handleViewInvoice}
+                    onDownload={handleDownloadInvoice}
+                    onSend={handleSendInvoice}
+                    onPrint={handlePrintInvoice}
+                    onEdit={handleEditInvoice}
+                    onDelete={handleDeleteInvoice}
+                    getStatusColor={getStatusColor}
+                    onPay={onPay}
+                    isAdmin={isAdmin}
+                  />
+                ))}
+                {filteredInvoices.length === 0 && (
+                  <div className="py-8 text-center">
+                    <p className="text-muted-foreground text-sm">No invoices found</p>
                   </div>
-                </ScrollArea>
-              </TabsContent>
-            </Tabs>
+                )}
+              </div>
+            </ScrollArea>
           )}
         </div>
       </Card>
@@ -272,7 +365,7 @@ interface InvoiceItemProps {
   onDelete: (invoice: InvoiceData) => void;
   getStatusColor: (status: string) => string;
   onPay: (invoice: InvoiceData) => void;
-  isAdmin?: boolean; // Admin role prop
+  isAdmin?: boolean;
 }
 
 function InvoiceItem({ 
@@ -285,7 +378,7 @@ function InvoiceItem({
   onDelete, 
   getStatusColor, 
   onPay,
-  isAdmin = false, // Default to false for safety
+  isAdmin = false,
 }: InvoiceItemProps) {
   const showMarkAsPaid = isAdmin && (invoice.status === 'pending' || invoice.status === 'overdue');
   
@@ -352,7 +445,6 @@ function InvoiceItem({
         </div>
 
         <div className="flex flex-wrap gap-2 text-xs">
-          {/* Only show edit button for admins */}
           {isAdmin && (
             <Button 
               variant="outline" 
