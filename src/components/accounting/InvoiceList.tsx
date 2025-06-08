@@ -8,6 +8,8 @@ import {
   CheckCircle,
   AlertCircle,
   Users,
+  List,
+  Grid2X2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -102,12 +104,11 @@ export function InvoiceList({
   const handleFilterClick = (filterKey: string) => {
     setActiveTab(filterKey as any);
     if (isMobile) {
+      // Toggle expanded state - don't auto-collapse
       if (expandedFilter === filterKey) {
         setExpandedFilter(null);
       } else {
         setExpandedFilter(filterKey);
-        // Auto collapse after 2 seconds
-        setTimeout(() => setExpandedFilter(null), 2000);
       }
     }
   };
@@ -174,8 +175,9 @@ export function InvoiceList({
         {/* Mobile Horizontal Scrollable Navigation */}
         {isMobile ? (
           <div className="p-4 border-b">
-            <ScrollArea className="w-full">
+            <ScrollArea className="w-full" orientation="horizontal">
               <div className="flex gap-2 pb-2 min-w-max">
+                {/* Filter Options */}
                 {filterOptions.map((option) => {
                   const Icon = option.icon;
                   const isActive = activeTab === option.key;
@@ -219,28 +221,34 @@ export function InvoiceList({
                     </button>
                   );
                 })}
+                
+                {/* View Mode Toggle Buttons */}
+                <div className="flex gap-1 ml-2 border-l border-border pl-2">
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={cn(
+                      "flex items-center justify-center p-3 rounded-full transition-all duration-300",
+                      viewMode === 'list'
+                        ? "bg-primary text-primary-foreground shadow-lg"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    )}
+                  >
+                    <List className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={cn(
+                      "flex items-center justify-center p-3 rounded-full transition-all duration-300",
+                      viewMode === 'grid'
+                        ? "bg-primary text-primary-foreground shadow-lg"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    )}
+                  >
+                    <Grid2X2 className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
             </ScrollArea>
-            
-            {/* View Mode Toggle */}
-            <div className="flex gap-1 mt-4">
-              <Button 
-                variant={viewMode === 'list' ? 'default' : 'ghost'} 
-                size="sm" 
-                className="flex-1"
-                onClick={() => setViewMode('list')}
-              >
-                List View
-              </Button>
-              <Button 
-                variant={viewMode === 'grid' ? 'default' : 'ghost'} 
-                size="sm" 
-                className="flex-1"
-                onClick={() => setViewMode('grid')}
-              >
-                Grid View
-              </Button>
-            </div>
           </div>
         ) : (
           // Desktop Tab Navigation (unchanged)
