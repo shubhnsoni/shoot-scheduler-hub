@@ -60,7 +60,7 @@ export function InvoiceList({
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'paid' | 'overdue'>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [expandedFilter, setExpandedFilter] = useState<string | null>(null);
 
   const filteredInvoices = activeTab === 'all' 
     ? data.invoices 
@@ -97,6 +97,19 @@ export function InvoiceList({
     setSelectedInvoice(invoice);
     setViewInvoiceDialogOpen(true);
     onView(invoice);
+  };
+
+  const handleFilterClick = (filterKey: string) => {
+    setActiveTab(filterKey as any);
+    if (isMobile) {
+      if (expandedFilter === filterKey) {
+        setExpandedFilter(null);
+      } else {
+        setExpandedFilter(filterKey);
+        // Auto collapse after 2 seconds
+        setTimeout(() => setExpandedFilter(null), 2000);
+      }
+    }
   };
 
   const handleDownloadInvoice = (invoice: InvoiceData) => {
@@ -155,54 +168,62 @@ export function InvoiceList({
     }
   };
 
-  const currentFilter = filterOptions.find(f => f.key === activeTab);
-
   return (
     <div className="w-full">
       <Card className="mb-6">
-        {/* Mobile Circular Icon Navigation */}
+        {/* Mobile Horizontal Scrollable Navigation */}
         {isMobile ? (
           <div className="p-4 border-b">
-            <div className="flex justify-center gap-3 mb-4">
-              {filterOptions.map((option) => {
-                const Icon = option.icon;
-                const isActive = activeTab === option.key;
-                return (
-                  <button
-                    key={option.key}
-                    onClick={() => setActiveTab(option.key as any)}
-                    className={cn(
-                      "relative w-16 h-16 rounded-full flex flex-col items-center justify-center transition-all duration-200",
-                      isActive 
-                        ? "bg-primary text-primary-foreground shadow-lg" 
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    )}
-                  >
-                    <Icon className="h-6 w-6 mb-0.5" />
-                    {option.count > 0 && (
-                      <div className={cn(
-                        "absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center text-xs font-semibold",
+            <ScrollArea className="w-full">
+              <div className="flex gap-2 pb-2 min-w-max">
+                {filterOptions.map((option) => {
+                  const Icon = option.icon;
+                  const isActive = activeTab === option.key;
+                  const isExpanded = expandedFilter === option.key;
+                  
+                  return (
+                    <button
+                      key={option.key}
+                      onClick={() => handleFilterClick(option.key)}
+                      className={cn(
+                        "relative flex items-center gap-2 px-4 py-3 rounded-full transition-all duration-300 whitespace-nowrap",
                         isActive 
-                          ? "bg-primary-foreground text-primary" 
-                          : "bg-primary text-primary-foreground"
-                      )}>
-                        {option.count}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            
-            {/* Current filter label */}
-            <div className="text-center mb-3">
-              <span className="text-sm font-medium text-foreground">
-                {currentFilter?.label}
-              </span>
-            </div>
+                          ? "bg-primary text-primary-foreground shadow-lg" 
+                          : "bg-muted text-muted-foreground hover:bg-muted/80",
+                        isExpanded ? "px-6" : ""
+                      )}
+                    >
+                      <Icon className="h-5 w-5 flex-shrink-0" />
+                      
+                      {/* Count badge */}
+                      {option.count > 0 && (
+                        <div className={cn(
+                          "flex items-center justify-center min-w-[20px] h-5 rounded-full text-xs font-semibold",
+                          isActive 
+                            ? "bg-primary-foreground text-primary" 
+                            : "bg-primary text-primary-foreground"
+                        )}>
+                          {option.count}
+                        </div>
+                      )}
+                      
+                      {/* Expanded text */}
+                      <span 
+                        className={cn(
+                          "text-sm font-medium transition-all duration-300 overflow-hidden",
+                          isExpanded ? "opacity-100 max-w-[120px]" : "opacity-0 max-w-0"
+                        )}
+                      >
+                        {option.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </ScrollArea>
             
             {/* View Mode Toggle */}
-            <div className="flex gap-1">
+            <div className="flex gap-1 mt-4">
               <Button 
                 variant={viewMode === 'list' ? 'default' : 'ghost'} 
                 size="sm" 
