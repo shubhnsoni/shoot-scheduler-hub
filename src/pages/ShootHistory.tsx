@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -25,7 +24,6 @@ const statusColors = {
   'scheduled': 'bg-blue-500',
   'completed': 'bg-green-500',
   'pending': 'bg-yellow-500',
-  'hold': 'bg-purple-500',
   'booked': 'bg-orange-500',
 };
 
