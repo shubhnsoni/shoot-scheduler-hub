@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -51,7 +52,7 @@ const ShootHistory = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Get client shoots by status - including 'booked' status in scheduled
+  // Get client shoots by status
   const getClientShootsByStatus = (status: string): ShootData[] => {
     let filteredShoots = shoots;
     
@@ -64,23 +65,13 @@ const ShootHistory = () => {
       );
     }
     
-    // Filter by status - include 'booked' in scheduled
-    if (status === 'scheduled') {
-      return filteredShoots.filter(shoot => 
-        shoot.status === 'scheduled' || shoot.status === 'booked'
-      );
-    }
-    
+    // Filter by specific status
     return filteredShoots.filter(shoot => shoot.status === status);
   };
 
   const scheduledShoots = getClientShootsByStatus('scheduled');
   const completedShoots = getClientShootsByStatus('completed');
-  // Include both 'hold' and 'pending' status for Hold-On tab
-  const holdShoots = [
-    ...getClientShootsByStatus('hold'),
-    ...getClientShootsByStatus('pending')
-  ];
+  const bookedShoots = getClientShootsByStatus('booked');
 
   // Apply filters to scheduled shoots
   const filteredScheduledShoots = scheduledShoots.filter(shoot => {
@@ -128,7 +119,7 @@ const ShootHistory = () => {
             statusColors[shoot.status as keyof typeof statusColors] || 'bg-gray-500'
           } text-white`}
         >
-          {shoot.status === 'booked' ? 'Booked' : shoot.status.charAt(0).toUpperCase() + shoot.status.slice(1)}
+          {shoot.status.charAt(0).toUpperCase() + shoot.status.slice(1)}
         </Badge>
       </div>
       
@@ -206,7 +197,7 @@ const ShootHistory = () => {
                       statusColors[shoot.status as keyof typeof statusColors] || 'bg-gray-500'
                     } text-white text-xs`}
                   >
-                    {shoot.status === 'booked' ? 'Booked' : shoot.status.charAt(0).toUpperCase() + shoot.status.slice(1)}
+                    {shoot.status.charAt(0).toUpperCase() + shoot.status.slice(1)}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -271,6 +262,7 @@ const ShootHistory = () => {
   // Debug logging
   console.log('All shoots:', shoots);
   console.log('Scheduled shoots:', scheduledShoots);
+  console.log('Booked shoots:', bookedShoots);
   console.log('User:', user);
 
   return (
@@ -290,13 +282,13 @@ const ShootHistory = () => {
               <Calendar className="h-4 w-4" />
               <span>Scheduled ({scheduledShoots.length})</span>
             </TabsTrigger>
+            <TabsTrigger value="booked" className="flex gap-2 items-center">
+              <Calendar className="h-4 w-4" />
+              <span>Booked ({bookedShoots.length})</span>
+            </TabsTrigger>
             <TabsTrigger value="completed" className="flex gap-2 items-center">
               <Eye className="h-4 w-4" />
               <span>Completed ({completedShoots.length})</span>
-            </TabsTrigger>
-            <TabsTrigger value="hold" className="flex gap-2 items-center">
-              <Calendar className="h-4 w-4" />
-              <span>Hold-On ({holdShoots.length})</span>
             </TabsTrigger>
           </TabsList>
 
@@ -378,6 +370,16 @@ const ShootHistory = () => {
                 )}
               </TabsContent>
               
+              <TabsContent value="booked" className="mt-0">
+                {bookedShoots.length > 0 ? (
+                  <div className="grid gap-4">
+                    {bookedShoots.map(renderShootCard)}
+                  </div>
+                ) : (
+                  renderEmptyState("You don't have any booked shoots yet.")
+                )}
+              </TabsContent>
+              
               <TabsContent value="completed" className="mt-0">
                 {completedShoots.length > 0 ? (
                   <div className="grid gap-4">
@@ -385,16 +387,6 @@ const ShootHistory = () => {
                   </div>
                 ) : (
                   renderEmptyState("You don't have any completed shoots yet.")
-                )}
-              </TabsContent>
-              
-              <TabsContent value="hold" className="mt-0">
-                {holdShoots.length > 0 ? (
-                  <div className="grid gap-4">
-                    {holdShoots.map(renderShootCard)}
-                  </div>
-                ) : (
-                  renderEmptyState("You don't have any shoots on hold.")
                 )}
               </TabsContent>
             </>
