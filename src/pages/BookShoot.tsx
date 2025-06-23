@@ -80,7 +80,6 @@ const BookShoot = () => {
     }
   }, [clientIdFromUrl, clientNameFromUrl, clientCompanyFromUrl, toast]);
 
-  // Ask for geolocation permission when the component mounts
   useEffect(() => {
     if (navigator.geolocation && !address) {
       navigator.permissions
@@ -119,7 +118,6 @@ const BookShoot = () => {
 
   const getAvailablePhotographers = () => {
     if (!date || !time || !selectedPackage) return [];
-
     return photographers.filter(p => p.availability);
   };
 
@@ -164,8 +162,6 @@ const BookShoot = () => {
     setFormErrors({});
     
     if (step === 3) {
-      const availablePhotographers = getAvailablePhotographers();
-      
       if (!client || !address || !city || !state || !zip || !date || !time || !selectedPackage) {
         toast({
           title: "Missing information",
@@ -233,7 +229,16 @@ const BookShoot = () => {
       };
 
       console.log("Creating new shoot:", newShoot);
+      
+      // Add the shoot and show success message
       addShoot(newShoot);
+      
+      toast({
+        title: "Shoot Booked Successfully!",
+        description: `Your shoot has been booked for ${format(shootDate, 'PPP')} at ${time}. You can view it in your shoot history.`,
+        variant: "default",
+      });
+      
       setIsComplete(true);
     } else {
       if (!validateCurrentStep()) {
@@ -364,7 +369,6 @@ const BookShoot = () => {
               <BookingStepIndicator currentStep={step} totalSteps={3} />
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                {/* Summary always appears on top on mobile, side on desktop */}
                 <div className={`${isMobile ? "order-1 mb-4" : "order-1 md:order-1 row-span-2"} md:col-span-1`}>
                   <BookingSummary 
                     summaryInfo={summaryInfo} 

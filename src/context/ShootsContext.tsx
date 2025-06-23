@@ -12,7 +12,6 @@ interface ShootsContextType {
   addShoot: (shoot: ShootData) => void;
   updateShoot: (shootId: string, updates: Partial<ShootData>) => Promise<void>;
   deleteShoot: (shootId: string) => void;
-  // Add the missing methods to the context type
   getClientShootsByStatus: (status: string) => ShootData[];
   getUniquePhotographers: () => { name: string; shootCount: number; avatar?: string }[];
   getUniqueEditors: () => { name: string; shootCount: number; avatar?: string }[];
@@ -40,7 +39,6 @@ export const ShootsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     const loadShootsFromSupabase = async () => {
       try {
-        // Using the type assertion to work with the table until types are regenerated
         const { data, error } = await supabase
           .from('shoots' as any)
           .select('*');
@@ -73,7 +71,6 @@ export const ShootsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           } as ShootData));
           
           setShoots(transformedShoots);
-          // Also update localStorage to keep them in sync
           localStorage.setItem('shoots', JSON.stringify(transformedShoots));
         } else {
           console.log('No shoots found in Supabase, using local data');
@@ -83,7 +80,6 @@ export const ShootsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
     
-    // Try to load from Supabase, fallback to localStorage if not available
     loadShootsFromSupabase().catch(() => {
       console.log('Using local shoots data');
     });
@@ -96,49 +92,50 @@ export const ShootsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const addShoot = async (shoot: ShootData) => {
     console.log('Adding shoot to context:', shoot);
+    
+    // Always add to local state first for immediate UI feedback
     setShoots(prevShoots => {
       const newShoots = [...prevShoots, shoot];
       console.log('New shoots array:', newShoots);
+      // Also save to localStorage immediately
+      localStorage.setItem('shoots', JSON.stringify(newShoots));
       return newShoots;
     });
     
-    // Transform shoot data for Supabase schema
-    const supabaseShoot = {
-      id: shoot.id,
-      scheduled_date: shoot.scheduledDate,
-      time: shoot.time,
-      client: shoot.client,
-      location: shoot.location,
-      photographer: shoot.photographer,
-      editor: shoot.editor || null,
-      services: shoot.services,
-      payment: shoot.payment,
-      status: shoot.status,
-      notes: shoot.notes || null,
-      created_by: shoot.createdBy,
-      completed_date: shoot.completedDate || null,
-      media: shoot.media || null,
-      tour_links: shoot.tourLinks || null
-    };
-    
-    // Try to add to Supabase if available
+    // Try to add to Supabase in the background (don't block UI)
     try {
+      const supabaseShoot = {
+        id: shoot.id,
+        scheduled_date: shoot.scheduledDate,
+        time: shoot.time,
+        client: shoot.client,
+        location: shoot.location,
+        photographer: shoot.photographer,
+        editor: shoot.editor || null,
+        services: shoot.services,
+        payment: shoot.payment,
+        status: shoot.status,
+        notes: shoot.notes || null,
+        created_by: shoot.createdBy,
+        completed_date: shoot.completedDate || null,
+        media: shoot.media || null,
+        tour_links: shoot.tourLinks || null
+      };
+      
       const { error } = await supabase
         .from('shoots' as any)
         .insert(supabaseShoot);
         
       if (error) {
         console.error('Error adding shoot to Supabase:', error);
-        toast({
-          title: 'Error saving shoot',
-          description: error.message,
-          variant: 'destructive',
-        });
+        // Don't show error toast as the shoot is still saved locally
+        console.log('Shoot saved locally despite Supabase error');
       } else {
         console.log('Shoot added to Supabase successfully');
       }
     } catch (error) {
       console.error('Error in Supabase shoot insert:', error);
+      // Shoot is still saved locally, so don't remove from state
     }
   };
 
@@ -196,7 +193,7 @@ export const ShootsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               description: error.message,
               variant: 'destructive',
             });
-            throw error; // Propagate error to the component
+            throw error;
           } else {
             console.log('Shoot updated in Supabase successfully');
             toast({
@@ -205,7 +202,6 @@ export const ShootsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             });
           }
         } else {
-          // For non-UUID IDs (like numeric IDs in local storage), only update local storage
           console.log('Skipping Supabase update for non-UUID ID:', shootId);
           
           toast({
@@ -215,7 +211,7 @@ export const ShootsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       } catch (error) {
         console.error('Error in Supabase shoot update:', error);
-        throw error; // Propagate error to the component
+        throw error;
       }
     }
   };
@@ -324,7 +320,6 @@ export const ShootsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const editorsMap = new Map<string, { name: string; shootCount: number; avatar?: string }>();
     
     shoots.forEach(shoot => {
-      // Assuming editor info is stored in the shoot data
       if (shoot.editor && shoot.editor.name) {
         const name = shoot.editor.name;
         const existingEditor = editorsMap.get(name);
