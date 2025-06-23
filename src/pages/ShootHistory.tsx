@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -37,7 +36,7 @@ const ShootHistory = () => {
   const [filterPhotographer, setFilterPhotographer] = useState('');
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { getClientShootsByStatus, getUniquePhotographers } = useShoots();
+  const { shoots, getUniquePhotographers } = useShoots();
   const { user } = useAuth();
 
   // Get all photographers for filter dropdown
@@ -52,10 +51,32 @@ const ShootHistory = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Get client shoots by status
+  // Get client shoots by status - including 'booked' status in scheduled
+  const getClientShootsByStatus = (status: string): ShootData[] => {
+    let filteredShoots = shoots;
+    
+    // If user is client, filter by their information
+    if (user?.role === 'client') {
+      filteredShoots = shoots.filter(shoot => 
+        shoot.client.name === user.name || 
+        shoot.client.company === user?.company ||
+        shoot.client.email === user.email
+      );
+    }
+    
+    // Filter by status - include 'booked' in scheduled
+    if (status === 'scheduled') {
+      return filteredShoots.filter(shoot => 
+        shoot.status === 'scheduled' || shoot.status === 'booked'
+      );
+    }
+    
+    return filteredShoots.filter(shoot => shoot.status === status);
+  };
+
   const scheduledShoots = getClientShootsByStatus('scheduled');
   const completedShoots = getClientShootsByStatus('completed');
-  // Include both 'hold' and 'booked' status for Hold-On tab
+  // Include both 'hold' and 'pending' status for Hold-On tab
   const holdShoots = [
     ...getClientShootsByStatus('hold'),
     ...getClientShootsByStatus('pending')
@@ -107,7 +128,7 @@ const ShootHistory = () => {
             statusColors[shoot.status as keyof typeof statusColors] || 'bg-gray-500'
           } text-white`}
         >
-          {shoot.status.charAt(0).toUpperCase() + shoot.status.slice(1)}
+          {shoot.status === 'booked' ? 'Booked' : shoot.status.charAt(0).toUpperCase() + shoot.status.slice(1)}
         </Badge>
       </div>
       
@@ -165,6 +186,7 @@ const ShootHistory = () => {
             <TableHead>Address</TableHead>
             <TableHead>Services</TableHead>
             <TableHead>Photographer</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -177,6 +199,16 @@ const ShootHistory = () => {
                 <TableCell className="max-w-xs truncate">{shoot.location.fullAddress}</TableCell>
                 <TableCell>{shoot.services.join(', ')}</TableCell>
                 <TableCell>{shoot.photographer.name}</TableCell>
+                <TableCell>
+                  <Badge 
+                    variant="outline" 
+                    className={`${
+                      statusColors[shoot.status as keyof typeof statusColors] || 'bg-gray-500'
+                    } text-white text-xs`}
+                  >
+                    {shoot.status === 'booked' ? 'Booked' : shoot.status.charAt(0).toUpperCase() + shoot.status.slice(1)}
+                  </Badge>
+                </TableCell>
                 <TableCell>
                   <Button 
                     variant="ghost" 
@@ -192,7 +224,7 @@ const ShootHistory = () => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={6} className="text-center p-4">No scheduled shoots found</TableCell>
+              <TableCell colSpan={7} className="text-center p-4">No scheduled shoots found</TableCell>
             </TableRow>
           )}
         </TableBody>
@@ -235,6 +267,11 @@ const ShootHistory = () => {
       ))}
     </div>
   );
+
+  // Debug logging
+  console.log('All shoots:', shoots);
+  console.log('Scheduled shoots:', scheduledShoots);
+  console.log('User:', user);
 
   return (
     <DashboardLayout>
