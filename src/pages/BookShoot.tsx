@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -197,9 +196,9 @@ const BookShoot = () => {
         scheduledDate: shootDate.toISOString().split('T')[0],
         time: time,
         client: {
-          name: selectedClientData?.name || 'Unknown Client',
-          email: selectedClientData?.email || `client${client}@example.com`,
-          company: selectedClientData?.company,
+          name: selectedClientData?.name || (isClientAccount ? user?.name || 'Unknown Client' : 'Unknown Client'),
+          email: selectedClientData?.email || (isClientAccount ? user?.email || `client${client}@example.com` : `client${client}@example.com`),
+          company: selectedClientData?.company || (isClientAccount ? (user?.metadata?.company || user?.company) : undefined),
           totalShoots: 1
         },
         location: {
@@ -229,14 +228,13 @@ const BookShoot = () => {
           lastPaymentType: bypassPayment ? undefined : 'Credit Card'
         },
         status: bookingStatus,
-        notes: notes ? { shootNotes: notes } : undefined,
+        notes: notes ? notes : undefined,
         createdBy: user?.name || "Current User"
       };
 
+      console.log("Creating new shoot:", newShoot);
       addShoot(newShoot);
       setIsComplete(true);
-
-      console.log("New shoot created:", newShoot);
     } else {
       if (!validateCurrentStep()) {
         return;

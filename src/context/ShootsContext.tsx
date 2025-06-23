@@ -91,10 +91,16 @@ export const ShootsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     localStorage.setItem('shoots', JSON.stringify(shoots));
+    console.log('Updated shoots in localStorage:', shoots);
   }, [shoots]);
 
   const addShoot = async (shoot: ShootData) => {
-    setShoots(prevShoots => [...prevShoots, shoot]);
+    console.log('Adding shoot to context:', shoot);
+    setShoots(prevShoots => {
+      const newShoots = [...prevShoots, shoot];
+      console.log('New shoots array:', newShoots);
+      return newShoots;
+    });
     
     // Transform shoot data for Supabase schema
     const supabaseShoot = {
@@ -239,20 +245,51 @@ export const ShootsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Implement the getClientShootsByStatus method
+  // Implement the getClientShootsByStatus method with better client matching
   const getClientShootsByStatus = (status: string): ShootData[] => {
-    // If user is client, filter by their name/company, else return all
+    console.log('getClientShootsByStatus called with status:', status);
+    console.log('Current user:', user);
+    console.log('All shoots:', shoots);
+    
+    let filteredShoots = shoots;
+    
+    // If user is client, filter by their information
     if (user?.role === 'client') {
-      return shoots.filter(shoot => 
-        shoot.status === status && 
-        (shoot.client.name === user.name || 
-         shoot.client.company === user?.company ||
-         shoot.client.email === user.email)
-      );
+      filteredShoots = shoots.filter(shoot => {
+        const matchesName = shoot.client.name === user.name;
+        const matchesEmail = shoot.client.email === user.email;
+        const matchesCompany = user?.company && shoot.client.company === user.company;
+        
+        console.log('Checking shoot:', shoot.id, {
+          shootClientName: shoot.client.name,
+          shootClientEmail: shoot.client.email,
+          shootClientCompany: shoot.client.company,
+          userClientName: user.name,
+          userClientEmail: user.email,
+          userClientCompany: user.company,
+          matchesName,
+          matchesEmail,
+          matchesCompany
+        });
+        
+        return matchesName || matchesEmail || matchesCompany;
+      });
+      
+      console.log('Filtered shoots for client:', filteredShoots);
     }
     
-    // For other roles, just filter by status
-    return shoots.filter(shoot => shoot.status === status);
+    // Filter by status - include 'booked' in scheduled
+    let statusFilteredShoots;
+    if (status === 'scheduled') {
+      statusFilteredShoots = filteredShoots.filter(shoot => 
+        shoot.status === 'scheduled' || shoot.status === 'booked'
+      );
+    } else {
+      statusFilteredShoots = filteredShoots.filter(shoot => shoot.status === status);
+    }
+    
+    console.log(`Final filtered shoots for status '${status}':`, statusFilteredShoots);
+    return statusFilteredShoots;
   };
 
   // Implement getUniquePhotographers method
