@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,6 +23,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FileUploader } from '@/components/media/FileUploader';
 import { ShootsContent } from '@/components/dashboard/ShootsContent';
+import { v4 as uuidv4 } from 'uuid';
 
 const statusColors = {
   'scheduled': 'bg-blue-500',
@@ -105,19 +107,23 @@ const ShootHistory = () => {
       const mediaUpdate = {
         media: {
           images: files.filter(f => f.type.startsWith('image/')).map(f => ({
+            id: uuidv4(),
             url: URL.createObjectURL(f),
-            filename: f.name,
-            uploadedAt: new Date().toISOString()
+            type: f.type,
+            approved: false
           })),
           videos: files.filter(f => f.type.startsWith('video/')).map(f => ({
+            id: uuidv4(),
             url: URL.createObjectURL(f),
-            filename: f.name,
-            uploadedAt: new Date().toISOString()
+            type: f.type,
+            approved: false
           })),
-          documents: files.filter(f => !f.type.startsWith('image/') && !f.type.startsWith('video/')).map(f => ({
+          files: files.filter(f => !f.type.startsWith('image/') && !f.type.startsWith('video/')).map(f => ({
+            id: uuidv4(),
             url: URL.createObjectURL(f),
-            filename: f.name,
-            uploadedAt: new Date().toISOString()
+            name: f.name,
+            type: f.type,
+            size: f.size
           }))
         }
       };
@@ -450,9 +456,13 @@ const ShootHistory = () => {
               
               <TabsContent value="completed" className="mt-0">
                 {completedShoots.length > 0 ? (
-                  <div className="grid gap-4">
-                    {completedShoots.map(renderShootCard)}
-                  </div>
+                  <ShootsContent 
+                    filteredShoots={completedShoots}
+                    viewMode="grid"
+                    onShootSelect={(shoot) => navigate(`/shoots?id=${shoot.id}`)}
+                    onUploadMedia={handleUploadMedia}
+                    showMedia={true}
+                  />
                 ) : (
                   renderEmptyState("You don't have any completed shoots yet.")
                 )}
