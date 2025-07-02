@@ -48,8 +48,9 @@ export function ShootsContent({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {filteredShoots.map((shoot) => {
-        // Only show media for completed shoots, never for hold/pending shoots
+        // Show media and upload button for completed shoots
         const shouldShowMedia = shoot.status === 'completed' && showMedia;
+        const shouldShowUploadButton = shoot.status === 'completed' && onUploadMedia;
         
         return (
           <Card key={shoot.id} className="overflow-hidden">
@@ -58,8 +59,8 @@ export function ShootsContent({
               onClick={() => onShootSelect(shoot)}
               showMedia={shouldShowMedia}
             />
-            {shoot.status === 'completed' && showMedia && onUploadMedia && (
-              <div className="p-3 border-t flex justify-end">
+            {shouldShowUploadButton && (
+              <div className="p-3 border-t flex justify-end bg-muted/30">
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -67,8 +68,10 @@ export function ShootsContent({
                     e.stopPropagation();
                     onUploadMedia(shoot);
                   }}
+                  className="flex items-center gap-2"
                 >
-                  <UploadIcon className="h-4 w-4 mr-2" /> Upload Media
+                  <UploadIcon className="h-4 w-4" />
+                  Upload Media
                 </Button>
               </div>
             )}

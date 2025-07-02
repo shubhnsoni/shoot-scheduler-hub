@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useShoots } from '@/context/ShootsContext';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Calendar, Clock, MapPin, ChevronRight, ArrowRight, Building, Search, Filter } from 'lucide-react';
+import { Eye, Calendar, Clock, MapPin, ChevronRight, ArrowRight, Building, Search, Filter, UploadIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ShootData } from '@/types/shoots';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -19,6 +19,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FileUploader } from '@/components/media/FileUploader';
+import { ShootsContent } from '@/components/dashboard/ShootsContent';
 
 const statusColors = {
   'scheduled': 'bg-blue-500',
@@ -33,9 +36,11 @@ const ShootHistory = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterAddress, setFilterAddress] = useState('');
   const [filterPhotographer, setFilterPhotographer] = useState('');
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedShootForUpload, setSelectedShootForUpload] = useState<ShootData | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { shoots, getUniquePhotographers } = useShoots();
+  const { shoots, getUniquePhotographers, updateShoot } = useShoots();
   const { user } = useAuth();
 
   // Get all photographers for filter dropdown
@@ -84,6 +89,56 @@ const ShootHistory = () => {
 
   const handleBookNewShoot = () => {
     navigate('/book-shoot');
+  };
+
+  const handleUploadMedia = (shoot: ShootData) => {
+    console.log('Opening upload dialog for shoot:', shoot.id);
+    setSelectedShootForUpload(shoot);
+    setUploadDialogOpen(true);
+  };
+
+  const handleUploadComplete = async (files: File[], notes: string) => {
+    if (!selectedShootForUpload) return;
+    
+    try {
+      // Update the shoot with uploaded media information
+      const mediaUpdate = {
+        media: {
+          images: files.filter(f => f.type.startsWith('image/')).map(f => ({
+            url: URL.createObjectURL(f),
+            filename: f.name,
+            uploadedAt: new Date().toISOString()
+          })),
+          videos: files.filter(f => f.type.startsWith('video/')).map(f => ({
+            url: URL.createObjectURL(f),
+            filename: f.name,
+            uploadedAt: new Date().toISOString()
+          })),
+          documents: files.filter(f => !f.type.startsWith('image/') && !f.type.startsWith('video/')).map(f => ({
+            url: URL.createObjectURL(f),
+            filename: f.name,
+            uploadedAt: new Date().toISOString()
+          }))
+        }
+      };
+      
+      await updateShoot(selectedShootForUpload.id, mediaUpdate);
+      
+      toast({
+        title: "Media uploaded successfully",
+        description: `${files.length} files have been uploaded for ${selectedShootForUpload.location.address}`,
+      });
+      
+      setUploadDialogOpen(false);
+      setSelectedShootForUpload(null);
+    } catch (error) {
+      console.error('Error uploading media:', error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your media files",
+        variant: "destructive"
+      });
+    }
   };
 
   // Format date for display
@@ -155,11 +210,26 @@ const ShootHistory = () => {
         )}
       </div>
       
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
         <Button variant="ghost" size="sm" className="gap-1">
           <span>View Details</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
+        
+        {shoot.status === 'completed' && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleUploadMedia(shoot);
+            }}
+            className="flex items-center gap-1"
+          >
+            <UploadIcon className="h-4 w-4" />
+            Upload Media
+          </Button>
+        )}
       </div>
     </motion.div>
   );
@@ -390,6 +460,30 @@ const ShootHistory = () => {
             </>
           )}
         </Tabs>
+
+        {/* Upload Media Dialog */}
+        <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Upload Media - {selectedShootForUpload?.location.address}
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedShootForUpload && (
+              <FileUploader
+                shootId={selectedShootForUpload.id}
+                onUploadComplete={handleUploadComplete}
+                allowedFileTypes={[
+                  'image/jpeg', 'image/png', 'image/tiff', 'image/raw',
+                  'video/mp4', 'video/quicktime', 'video/avi',
+                  'application/zip', 'application/x-zip-compressed'
+                ]}
+                className="border-0 shadow-none"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
