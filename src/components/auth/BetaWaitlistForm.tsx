@@ -45,7 +45,7 @@ export function BetaWaitlistForm() {
     try {
       const { error } = await supabase
         .from('beta_waitlist')
-        .insert([values]);
+        .insert(values);
 
       if (error) {
         if (error.code === '23505') { // Unique constraint violation
