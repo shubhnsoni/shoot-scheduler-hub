@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,31 +15,22 @@ import { toast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
 import { UserData } from '@/types/auth';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { AlertCircle } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertCircle, Shield } from 'lucide-react';
+import { BetaWaitlistForm } from './BetaWaitlistForm';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
 });
 
-const registerSchema = loginSchema.extend({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
-  company: z.string().optional(),
-  role: z.enum(['client', 'photographer', 'editor', 'admin'], {
-    required_error: "Please select a role",
-  }),
-});
-
 type LoginFormValues = z.infer<typeof loginSchema>;
-type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export function LoginForm() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('login');
+  const [activeTab, setActiveTab] = useState<string>('waitlist');
   const isMobile = useIsMobile();
   
   const loginForm = useForm<LoginFormValues>({
@@ -46,17 +38,6 @@ export function LoginForm() {
     defaultValues: {
       email: '',
       password: '',
-    },
-  });
-
-  const registerForm = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-      company: '',
-      role: 'client',
     },
   });
   
@@ -155,46 +136,6 @@ export function LoginForm() {
     }, 1000);
   };
 
-  const handleRegister = (values: RegisterFormValues) => {
-    setIsLoading(true);
-    clearErrors();
-    
-    setTimeout(() => {
-      try {
-        const newUser: UserData = {
-          id: `user-${Date.now()}`,
-          name: values.name,
-          email: values.email,
-          role: values.role,
-          company: values.company,
-          isActive: true,
-          metadata: {
-            preferences: {
-              theme: 'system',
-              notifications: true,
-              emailFrequency: 'weekly'
-            }
-          }
-        };
-        
-        login(newUser);
-        toast({
-          title: "Account created",
-          description: "You have successfully registered and logged in!",
-        });
-        navigate('/dashboard');
-      } catch (error) {
-        console.error("Registration error:", error);
-        toast({
-          title: "Registration Failed",
-          description: "An unexpected error occurred. Please try again.",
-          variant: "destructive",
-        });
-      }
-      setIsLoading(false);
-    }, 1000);
-  };
-
   React.useEffect(() => {
     clearErrors();
   }, [activeTab]);
@@ -206,223 +147,130 @@ export function LoginForm() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="backdrop-blur-sm bg-background/80 border border-border/50 shadow-lg">
-        <CardContent className={`${isMobile ? 'p-5' : 'p-6'}`}>
-          <div className="mb-4 text-center">
-            <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold mb-1`}>
-              {activeTab === 'login' ? 'Welcome Back' : 'Create Account'}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {activeTab === 'login' 
-                ? 'Sign in to access your account' 
-                : 'Register to get started with our platform'}
-            </p>
-          </div>
-          
-          <div className="space-y-4">
-            <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-2 w-full mb-4">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="login">
-                {loginError && (
-                  <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-md flex items-center gap-2 text-sm text-destructive">
-                    <AlertCircle size={16} />
-                    <span>{loginError}</span>
-                  </div>
-                )}
-                
-                <Form {...loginForm}>
-                  <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
-                    <FormField
-                      control={loginForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="your@email.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={loginForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button 
-                      type="submit" 
-                      className="w-full"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full" />
-                          <span>Signing in...</span>
-                        </div>
-                      ) : "Sign In"}
-                    </Button>
-                  </form>
-                </Form>
-                
-                <div className="mt-4 text-center">
-                  <p className="text-xs text-muted-foreground mb-2">Sample logins:</p>
-                  <div className="flex flex-wrap gap-1 justify-center">
-                    <Badge variant="outline" className="cursor-pointer" onClick={() => {
-                      loginForm.setValue('email', 'client@example.com');
-                      loginForm.setValue('password', 'password123');
-                      clearErrors();
-                    }}>
-                      Client
-                    </Badge>
-                    <Badge variant="outline" className="cursor-pointer" onClick={() => {
-                      loginForm.setValue('email', 'admin@example.com');
-                      loginForm.setValue('password', 'password123');
-                      clearErrors();
-                    }}>
-                      Admin
-                    </Badge>
-                    <Badge variant="outline" className="cursor-pointer" onClick={() => {
-                      loginForm.setValue('email', 'photographer@example.com');
-                      loginForm.setValue('password', 'password123');
-                      clearErrors();
-                    }}>
-                      Photographer
-                    </Badge>
-                    <Badge variant="outline" className="cursor-pointer" onClick={() => {
-                      loginForm.setValue('email', 'editor@example.com');
-                      loginForm.setValue('password', 'password123');
-                      clearErrors();
-                    }}>
-                      Editor
-                    </Badge>
-                    <Badge variant="outline" className="cursor-pointer" onClick={() => {
-                      loginForm.setValue('email', 'superadmin@example.com');
-                      loginForm.setValue('password', 'password123');
-                      clearErrors();
-                    }}>
-                      SuperAdmin
-                    </Badge>
-                  </div>
+      <Tabs defaultValue="waitlist" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-2 w-full mb-4">
+          <TabsTrigger value="waitlist">Join Beta</TabsTrigger>
+          <TabsTrigger value="admin" className="flex items-center gap-2">
+            <Shield size={14} />
+            Admin Access
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="waitlist">
+          <BetaWaitlistForm />
+        </TabsContent>
+        
+        <TabsContent value="admin">
+          <Card className="backdrop-blur-sm bg-background/80 border border-border/50 shadow-lg">
+            <CardContent className={`${isMobile ? 'p-5' : 'p-6'}`}>
+              <div className="mb-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold`}>
+                    Admin Access
+                  </h1>
                 </div>
-              </TabsContent>
+                <p className="text-sm text-muted-foreground">
+                  For development and testing purposes only
+                </p>
+              </div>
               
-              <TabsContent value="register">
-                <Form {...registerForm}>
-                  <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
-                    <FormField
-                      control={registerForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Smith" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={registerForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="your@email.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={registerForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={registerForm.control}
-                      name="role"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Register as</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select your role" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="client">Client</SelectItem>
-                              <SelectItem value="photographer">Photographer</SelectItem>
-                              <SelectItem value="editor">Editor</SelectItem>
-                              <SelectItem value="admin">Administrator</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={registerForm.control}
-                      name="company"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Company (Optional)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Your Company" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button 
-                      type="submit" 
-                      className="w-full"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full" />
-                          <span>Creating Account...</span>
-                        </div>
-                      ) : "Create Account"}
-                    </Button>
-                  </form>
-                </Form>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </CardContent>
-      </Card>
+              {loginError && (
+                <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-md flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle size={16} />
+                  <span>{loginError}</span>
+                </div>
+              )}
+              
+              <Form {...loginForm}>
+                <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
+                  <FormField
+                    control={loginForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="your@email.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={loginForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="••••••••" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full" />
+                        <span>Signing in...</span>
+                      </div>
+                    ) : "Sign In"}
+                  </Button>
+                </form>
+              </Form>
+              
+              <div className="mt-4 text-center">
+                <p className="text-xs text-muted-foreground mb-2">Sample logins (Development Only):</p>
+                <div className="flex flex-wrap gap-1 justify-center">
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {
+                    loginForm.setValue('email', 'client@example.com');
+                    loginForm.setValue('password', 'password123');
+                    clearErrors();
+                  }}>
+                    Client
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {
+                    loginForm.setValue('email', 'admin@example.com');
+                    loginForm.setValue('password', 'password123');
+                    clearErrors();
+                  }}>
+                    Admin
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {
+                    loginForm.setValue('email', 'photographer@example.com');
+                    loginForm.setValue('password', 'password123');
+                    clearErrors();
+                  }}>
+                    Photographer
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {
+                    loginForm.setValue('email', 'editor@example.com');
+                    loginForm.setValue('password', 'password123');
+                    clearErrors();
+                  }}>
+                    Editor
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {
+                    loginForm.setValue('email', 'superadmin@example.com');
+                    loginForm.setValue('password', 'password123');
+                    clearErrors();
+                  }}>
+                    SuperAdmin
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </motion.div>
   );
 }
