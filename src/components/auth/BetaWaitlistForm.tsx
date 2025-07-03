@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -17,9 +16,7 @@ import { CheckCircle, Loader2 } from 'lucide-react';
 const waitlistSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
   email: z.string().email({ message: 'Please enter a valid email address' }),
-  company: z.string().optional(),
   role: z.string().min(1, { message: 'Please select a role' }),
-  interest_reason: z.string().optional(),
 });
 
 type WaitlistFormValues = z.infer<typeof waitlistSchema>;
@@ -33,9 +30,7 @@ export function BetaWaitlistForm() {
     defaultValues: {
       name: '',
       email: '',
-      company: '',
       role: '',
-      interest_reason: '',
     },
   });
 
@@ -45,7 +40,11 @@ export function BetaWaitlistForm() {
     try {
       const { error } = await supabase
         .from('beta_waitlist')
-        .insert(values);
+        .insert({
+          name: values.name,
+          email: values.email,
+          role: values.role,
+        });
 
       if (error) {
         if (error.code === '23505') { // Unique constraint violation
@@ -155,38 +154,6 @@ export function BetaWaitlistForm() {
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="company"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Company/Agency (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your Company Name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="interest_reason"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>What interests you most about REPro Dashboard? (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Tell us what features you're most excited about..."
-                      className="min-h-[80px]"
-                      {...field} 
-                    />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
